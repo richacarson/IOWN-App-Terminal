@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IOWN">
+<meta name="theme-color" content="#080c0a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>IOWN Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=EB+Garamond:wght@400;500;600&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080c0a;--card:#0f1612;--card-hover:#141e18;--sidebar:#0a0f0c;
+  --border:#1a2b20;--border-lt:#243a2c;
+  --green:#4ade80;--green-dim:#1a4d2e;--green-dk:#3D4A2E;--green-md:#5A6B42;
+  --red:#f87171;--red-dim:#4c1111;--gold:#fbbf24;--gold-dim:#5c4a0e;
+  --text:#dce8de;--muted:#7a9480;--dim:#4a6050;--white:#f0f7f1;
+  --mono:'DM Mono',monospace;--serif:'Playfair Display','Georgia',serif;--body:'EB Garamond','Georgia',serif;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--body);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
+input,button{font-family:inherit;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border-lt);border-radius:2px;}
+
+/* ── APP SHELL ─────────────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+.header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;padding-top:calc(8px + var(--safe-top));border-bottom:1px solid var(--border);background:var(--sidebar);flex-shrink:0;gap:8px;}
+.logo{display:flex;align-items:center;gap:8px;}
+.logo-mark{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--green-md),var(--green-dk));display:flex;align-items:center;justify-content:center;font:700 11px var(--mono);color:var(--white);letter-spacing:.05em;}
+.logo-text{font:700 16px var(--serif);letter-spacing:.02em;}
+.logo-tag{font:400 8px var(--mono);color:var(--muted);letter-spacing:.15em;text-transform:uppercase;}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:14px;padding-bottom:calc(56px + var(--safe-bot) + 14px);}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--sidebar);border-top:1px solid var(--border);padding-bottom:var(--safe-bot);z-index:100;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;font:400 9px var(--mono);color:var(--dim);cursor:pointer;transition:color .2s;border:none;background:none;letter-spacing:.04em;}
+.tab.active{color:var(--green);}
+.tab-icon{font-size:18px;margin-bottom:2px;line-height:1;}
+
+/* ── COMPONENTS ────────────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .2s;}
+.stat-card.active{border-color:var(--green-dim);}
+.stat-label{font:400 9px var(--mono);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px;}
+.stat-val{font:700 20px var(--mono);}
+.stat-sub{font:400 10px var(--mono);color:var(--muted);margin-top:3px;}
+
+.search-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.search-input{flex:1;min-width:160px;padding:9px 12px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--text);font:400 13px var(--mono);outline:none;}
+.filter-btn{padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font:400 10px var(--mono);transition:all .15s;}
+.filter-btn.active{border-color:var(--green-dim);background:var(--green-dk);color:var(--green);}
+
+.stock-list{border-radius:10px;border:1px solid var(--border);overflow:hidden;background:var(--card);}
+.stock-row{display:grid;grid-template-columns:1fr auto auto;gap:4px;padding:11px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;align-items:center;}
+.stock-row:active{background:var(--card-hover);}
+.stock-row:last-child{border-bottom:none;}
+.stock-ticker{font:700 14px var(--mono);color:var(--green);}
+.stock-name{font:400 10px var(--mono);color:var(--dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+.stock-price{font:600 14px var(--mono);text-align:right;}
+.stock-chg{font:600 12px var(--mono);text-align:right;padding:2px 6px;border-radius:4px;min-width:68px;display:inline-block;}
+.stock-chg.up{background:var(--green-dim);color:var(--green);}
+.stock-chg.down{background:var(--red-dim);color:var(--red);}
+.stock-meta{font:400 9px var(--mono);color:var(--dim);text-align:right;}
+
+/* Detail panel */
+.detail{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;animation:slideUp .25s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.detail-header{display:flex;justify-content:space-between;align-items:flex-start;}
+.detail-ticker{font:700 24px var(--serif);color:var(--green);}
+.detail-name{font:400 13px var(--body);color:var(--muted);margin-top:2px;}
+.detail-price{font:700 28px var(--mono);margin-top:8px;}
+.detail-change{font:600 15px var(--mono);margin-left:10px;}
+.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px;}
+.detail-metric{text-align:center;}
+.metric-label{font:400 8px var(--mono);color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;}
+.metric-val{font:600 14px var(--mono);}
+.close-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;padding:4px;}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font:400 9px var(--mono);margin-left:6px;}
+
+/* Signals */
+.signal-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+.signal-title{font:600 11px var(--mono);letter-spacing:.1em;margin-bottom:8px;}
+.signal-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);}
+.signal-row:first-of-type{border-top:none;}
+.signal-badge{padding:2px 7px;border-radius:4px;font:700 9px var(--mono);letter-spacing:.06em;}
+.signal-ticker{font:700 13px var(--mono);width:48px;}
+.signal-reason{font:400 11px var(--mono);color:var(--muted);flex:1;}
+
+/* News */
+.news-item{display:block;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;text-decoration:none;color:var(--text);transition:border .2s;}
+.news-item:active{border-color:var(--green-dim);}
+.news-headline{font:600 14px var(--body);margin-bottom:4px;line-height:1.3;}
+.news-summary{font:400 12px var(--body);color:var(--muted);line-height:1.4;}
+.news-meta{font:400 9px var(--mono);color:var(--dim);margin-top:6px;}
+
+/* AI */
+.ai-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.ai-input{width:100%;padding:11px 12px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--text);font:400 14px var(--body);outline:none;margin-top:10px;}
+.ai-btn{width:100%;padding:11px;border-radius:7px;border:none;background:linear-gradient(135deg,var(--green-md),var(--green-dk));color:var(--white);cursor:pointer;font:600 12px var(--mono);margin-top:8px;}
+.ai-btn:disabled{opacity:.5;}
+.ai-resp{margin-top:12px;padding:12px;border-radius:7px;background:var(--bg);border:1px solid var(--border);font:400 14px var(--body);line-height:1.6;white-space:pre-wrap;max-height:50vh;overflow:auto;}
+
+/* Config */
+.config-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;animation:fadeIn .2s;}
+.config-panel{position:fixed;bottom:0;left:0;right:0;background:var(--sidebar);border-top:1px solid var(--border);border-radius:16px 16px 0 0;padding:20px;padding-bottom:calc(20px + var(--safe-bot));z-index:201;max-height:80vh;overflow-y:auto;animation:slideUp .3s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.config-row{display:flex;gap:6px;margin-bottom:12px;}
+.config-input{flex:1;padding:10px 12px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--text);font:400 13px var(--mono);outline:none;}
+.config-btn{padding:10px 16px;border-radius:7px;border:none;font:600 11px var(--mono);cursor:pointer;}
+.config-status{padding:12px;background:var(--bg);border-radius:7px;border:1px solid var(--border);margin-bottom:12px;}
+
+/* Loading bar */
+.load-bar{height:2px;background:var(--border);border-radius:1px;overflow:hidden;margin-bottom:12px;}
+.load-fill{height:100%;background:var(--green);transition:width .3s;border-radius:1px;}
+
+/* Onboarding */
+.onboard{max-width:400px;margin:80px auto;text-align:center;padding:0 20px;}
+.onboard h1{font:700 26px var(--serif);margin-bottom:8px;}
+.onboard p{font:400 14px var(--body);color:var(--muted);line-height:1.6;margin-bottom:20px;}
+.onboard a{color:var(--green);}
+.connect-row{display:flex;gap:8px;}
+.connect-input{flex:1;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:400 14px var(--mono);outline:none;}
+.connect-btn{padding:12px 22px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--green-md),var(--green-dk));color:var(--white);cursor:pointer;font:600 13px var(--mono);}
+
+.refresh-btn{padding:6px 12px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--green);cursor:pointer;font:400 10px var(--mono);}
+.refresh-btn:disabled{color:var(--dim);cursor:not-allowed;}
+.section-title{font:700 20px var(--serif);margin-bottom:4px;}
+.section-desc{font:400 11px var(--mono);color:var(--muted);margin-bottom:16px;}
+.empty{color:var(--dim);font:400 13px var(--mono);text-align:center;padding:40px 20px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────
+const DIVIDEND=["A","ABT","ADI","ADP","ATO","BKH","CAT","CHD","CL","DGX","FAST","GD","GPC","LMT","LRCX","MATX","NEE","ORI","PCAR","QCOM","SSNC","STLD","SYK","TEL","VLO"];
+const GROWTH=["AEM","AMD","ATAT","CNX","COIN","CVX","CWAN","EIX","FINV","FTNT","GFI","HOOD","HRMY","HUT","KEYS","MARA","NVDA","NXPI","OKE","PDD","SUPV","SYF","TOL","TSM"];
+const DIGITAL=["IBIT","ETHA"];
+const ALL=[...DIVIDEND,...GROWTH,...DIGITAL];
+
+const NAMES={A:"Agilent",ABT:"Abbott Labs",ADI:"Analog Devices",ADP:"ADP",ATO:"Atmos Energy",BKH:"Black Hills",CAT:"Caterpillar",CHD:"Church & Dwight",CL:"Colgate-Palmolive",DGX:"Quest Diagnostics",FAST:"Fastenal",GD:"General Dynamics",GPC:"Genuine Parts",LMT:"Lockheed Martin",LRCX:"Lam Research",MATX:"Matson",NEE:"NextEra Energy",ORI:"Old Republic",PCAR:"PACCAR",QCOM:"Qualcomm",SSNC:"SS&C Tech",STLD:"Steel Dynamics",SYK:"Stryker",TEL:"TE Connectivity",VLO:"Valero Energy",AEM:"Agnico Eagle",AMD:"AMD",ATAT:"Atour Lifestyle",CNX:"CNX Resources",COIN:"Coinbase",CVX:"Chevron",CWAN:"Clearwater Analytics",EIX:"Edison Int'l",FINV:"FinVolution",FTNT:"Fortinet",GFI:"Gold Fields",HOOD:"Robinhood",HRMY:"Harmony Bio",HUT:"Hut 8",KEYS:"Keysight Tech",MARA:"MARA Holdings",NVDA:"NVIDIA",NXPI:"NXP Semi",OKE:"ONEOK",PDD:"PDD Holdings",SUPV:"Grupo Supervielle",SYF:"Synchrony",TOL:"Toll Brothers",TSM:"TSMC",IBIT:"iShares Bitcoin",ETHA:"iShares Ethereum"};
+
+const SECTORS={A:"Health Care",ABT:"Health Care",ADI:"Info Tech",ADP:"Industrials",ATO:"Utilities",BKH:"Utilities",CAT:"Industrials",CHD:"Consumer",CL:"Consumer",DGX:"Health Care",FAST:"Industrials",GD:"Industrials",GPC:"Consumer",LMT:"Industrials",LRCX:"Info Tech",MATX:"Industrials",NEE:"Utilities",ORI:"Financials",PCAR:"Industrials",QCOM:"Info Tech",SSNC:"Info Tech",STLD:"Materials",SYK:"Health Care",TEL:"Info Tech",VLO:"Energy",AEM:"Materials",AMD:"Info Tech",ATAT:"Consumer",CNX:"Energy",COIN:"Financials",CVX:"Energy",CWAN:"Info Tech",EIX:"Utilities",FINV:"Financials",FTNT:"Info Tech",GFI:"Materials",HOOD:"Financials",HRMY:"Health Care",HUT:"Info Tech",KEYS:"Info Tech",MARA:"Info Tech",NVDA:"Info Tech",NXPI:"Info Tech",OKE:"Energy",PDD:"Consumer",SUPV:"Financials",SYF:"Financials",TOL:"Consumer",TSM:"Info Tech",IBIT:"Digital Assets",ETHA:"Digital Assets"};
+
+const portfolio=t=>DIVIDEND.includes(t)?"Dividend":GROWTH.includes(t)?"Growth":"Digital";
+
+// ─── STATE ─────────────────────────────────────────────────────────────
+let state={
+  view:"portfolio",filter:"all",selected:null,search:"",
+  apiKey:localStorage.getItem("iown_key")||"",
+  quotes:JSON.parse(localStorage.getItem("iown_quotes")||"{}"),
+  metrics:JSON.parse(localStorage.getItem("iown_metrics")||"{}"),
+  loading:false,status:"",progress:0,
+  news:[],aiQuery:"",aiResp:"",aiLoading:false,
+  showConfig:false,sortKey:"ticker",sortDir:"asc"
+};
+
+function setState(patch){Object.assign(state,patch);render();}
+
+// ─── API ───────────────────────────────────────────────────────────────
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function fhFetch(endpoint,params={}){
+  if(!state.apiKey)return null;
+  const u=new URL(`https://finnhub.io/api/v1${endpoint}`);
+  u.searchParams.set("token",state.apiKey);
+  Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+  try{
+    const r=await fetch(u);
+    if(r.status===429)return"RATE_LIMITED";
+    if(!r.ok)return null;
+    return await r.json();
+  }catch{return null;}
+}
+
+async function fullLoad(){
+  if(state.loading)return;
+  setState({loading:true,status:"Fetching quotes...",progress:0});
+  const q={...state.quotes},m={...state.metrics};
+
+  for(let i=0;i<ALL.length;i++){
+    const t=ALL[i];
+    setState({status:`Quotes: ${t} (${i+1}/${ALL.length})`,progress:Math.round((i/ALL.length)*50)});
+    const d=await fhFetch("/quote",{symbol:t});
+    if(d==="RATE_LIMITED"){setState({status:"Rate limited — pausing..."});await sleep(62000);i--;continue;}
+    if(d&&d.c)q[t]=d;
+    await sleep(1100);
+  }
+  setState({quotes:q});localStorage.setItem("iown_quotes",JSON.stringify(q));
+
+  for(let i=0;i<ALL.length;i++){
+    const t=ALL[i];
+    setState({status:`Fundamentals: ${t} (${i+1}/${ALL.length})`,progress:50+Math.round((i/ALL.length)*50)});
+    const d=await fhFetch("/stock/metric",{symbol:t,metric:"all"});
+    if(d==="RATE_LIMITED"){setState({status:"Rate limited — pausing..."});await sleep(62000);i--;continue;}
+    if(d&&d.metric)m[t]=d.metric;
+    await sleep(1100);
+  }
+  setState({metrics:m,loading:false,status:"Complete",progress:100});
+  localStorage.setItem("iown_metrics",JSON.stringify(m));
+}
+
+async function quickRefresh(){
+  if(state.loading)return;
+  setState({loading:true,status:"Quick refresh...",progress:0});
+  const q={...state.quotes};
+  for(let i=0;i<ALL.length;i++){
+    const t=ALL[i];
+    setState({status:`${t} (${i+1}/${ALL.length})`,progress:Math.round((i/ALL.length)*100)});
+    const d=await fhFetch("/quote",{symbol:t});
+    if(d==="RATE_LIMITED"){setState({status:"Rate limited..."});await sleep(62000);i--;continue;}
+    if(d&&d.c)q[t]=d;
+    await sleep(1100);
+  }
+  setState({quotes:q,loading:false,status:"Complete",progress:100});
+  localStorage.setItem("iown_quotes",JSON.stringify(q));
+}
+
+async function loadNews(){
+  const d=await fhFetch("/news",{category:"general"});
+  if(d&&Array.isArray(d))setState({news:d.slice(0,20)});
+}
+
+async function runAI(){
+  if(!state.aiQuery.trim())return;
+  setState({aiLoading:true,aiResp:""});
+  try{
+    const ctx=ALL.filter(t=>state.quotes[t]).slice(0,20).map(t=>{
+      const q=state.quotes[t],m=state.metrics[t]||{};
+      return`${t}: $${q.c?.toFixed(2)} ${q.dp>=0?"+":""}${q.dp?.toFixed(2)}% P/E:${(m.peTTM||0).toFixed(1)} 200DMA:${m["200DayMovingAverage"]?((q.c>m["200DayMovingAverage"])?"above":"below"):"?"}`;
+    }).join("\n");
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,
+        system:"You are a research analyst for IOWN (Intentional Ownership), an RIA. Portfolio: 25 dividend, 24 growth, 2 digital asset ETFs. Be concise and actionable. Use IOWN framework: Think Like an Owner, Simplicity Over Complexity, Research Reveals Opportunities, Avoid Erosion. Tactical: trim above 200DMA +25% from lows, buy 3 tranches at -20/-25/-30%.",
+        messages:[{role:"user",content:`Portfolio:\n${ctx}\n\n${state.aiQuery}`}],
+        tools:[{type:"web_search_20250305",name:"web_search"}]})
+    });
+    const data=await r.json();
+    setState({aiResp:data.content?.map(i=>i.type==="text"?i.text:"").filter(Boolean).join("\n")||"No response.",aiLoading:false});
+  }catch(e){setState({aiResp:"Error: "+e.message,aiLoading:false});}
+}
+
+// ─── HELPERS ───────────────────────────────────────────────────────────
+const fmt=(n,d=2)=>n!=null&&isFinite(n)?Number(n).toFixed(d):"—";
+const fmtPct=n=>n!=null&&isFinite(n)?(n>=0?"+":"")+Number(n).toFixed(2)+"%":"—";
+const fmtMC=n=>{if(!n)return"—";if(n>=1e6)return"$"+(n/1e3).toFixed(0)+"B";return"$"+n.toFixed(0)+"M";};
+
+function getStockData(t){
+  const q=state.quotes[t]||{},m=state.metrics[t]||{};
+  const has=q.c&&q.c>0;
+  const sma200=m["200DayMovingAverage"]||0;
+  const h52=m["52WeekHigh"]||0,l52=m["52WeekLow"]||0;
+  return{ticker:t,name:NAMES[t],sector:SECTORS[t],port:portfolio(t),
+    price:q.c||0,open:q.o||0,high:q.h||0,low:q.l||0,pc:q.pc||0,chg:q.d||0,chgPct:q.dp||0,
+    pe:m.peBasicExclExtraTTM||m.peTTM||0,divYld:m.dividendYieldIndicatedAnnual||m.currentDividendYieldTTM||0,
+    mktCap:m.marketCapitalization||0,beta:m.beta||0,sma200,
+    h52,l52,above200:has&&sma200?q.c>sma200:null,
+    fromHigh:has&&h52?((q.c-h52)/h52)*100:null,fromLow:has&&l52?((q.c-l52)/l52)*100:null,
+    has};
+}
+
+function getFiltered(){
+  let tks=ALL;
+  if(state.filter==="dividend")tks=DIVIDEND;
+  if(state.filter==="growth")tks=GROWTH;
+  if(state.filter==="digital")tks=DIGITAL;
+  if(state.search){const q=state.search.toLowerCase();tks=tks.filter(t=>t.toLowerCase().includes(q)||(NAMES[t]||"").toLowerCase().includes(q)||(SECTORS[t]||"").toLowerCase().includes(q));}
+  return tks.sort((a,b)=>{
+    const da=getStockData(a),db=getStockData(b);
+    let va,vb;
+    switch(state.sortKey){
+      case"price":va=da.price;vb=db.price;break;
+      case"change":va=da.chgPct;vb=db.chgPct;break;
+      case"mktcap":va=da.mktCap;vb=db.mktCap;break;
+      default:va=a;vb=b;return state.sortDir==="asc"?va.localeCompare(vb):vb.localeCompare(va);
+    }
+    return state.sortDir==="asc"?(va||0)-(vb||0):(vb||0)-(va||0);
+  });
+}
+
+function calcStats(tks){
+  const d=tks.map(getStockData).filter(x=>x.has);
+  if(!d.length)return{avg:0,up:0,dn:0,a200:0,n:tks.length,loaded:0};
+  return{avg:d.reduce((s,x)=>s+x.chgPct,0)/d.length,up:d.filter(x=>x.chgPct>0).length,dn:d.filter(x=>x.chgPct<0).length,a200:d.filter(x=>x.above200===true).length,n:tks.length,loaded:d.length};
+}
+
+function getSignals(){
+  const s=[];
+  ALL.forEach(t=>{
+    const d=getStockData(t);if(!d.has)return;
+    if(d.above200===true&&d.fromLow!=null&&d.fromLow>=25)s.push({ticker:t,type:"TRIM",reason:`Above 200DMA, +${fmt(d.fromLow,0)}% from 52w low`});
+    if(d.fromHigh!=null&&d.fromHigh<=-20){const tr=d.fromHigh<=-30?"3rd":d.fromHigh<=-25?"2nd":"1st";s.push({ticker:t,type:"BUY",reason:`${fmt(d.fromHigh,0)}% from 52w high — ${tr} tranche`});}
+    if(d.above200===false)s.push({ticker:t,type:"WATCH",reason:`Below 200DMA ($${fmt(d.sma200,0)} vs $${fmt(d.price,0)})`});
+  });
+  return s;
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────
+function h(tag,attrs,...ch){
+  const el=document.createElement(tag);
+  if(attrs)Object.entries(attrs).forEach(([k,v])=>{
+    if(k==="style"&&typeof v==="object")Object.assign(el.style,v);
+    else if(k.startsWith("on"))el.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==="className")el.className=v;
+    else if(k==="innerHTML")el.innerHTML=v;
+    else el.setAttribute(k,v);
+  });
+  ch.flat(9).forEach(c=>{if(c!=null&&c!==false)el.appendChild(typeof c==="string"?document.createTextNode(c):c);});
+  return el;
+}
+
+function render(){
+  const app=document.getElementById("app");
+  app.innerHTML="";
+  const hasData=Object.keys(state.quotes).length>0;
+
+  // Header
+  app.appendChild(h("header",{className:"header"},
+    h("div",{className:"logo"},
+      h("div",{className:"logo-mark"},"IO"),
+      h("div",null,h("div",{className:"logo-text"},"IOWN"),h("div",{className:"logo-tag"},"Return on Intention"))
+    ),
+    h("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+      state.loading?h("div",{style:{fontSize:"9px",color:"var(--gold)",fontFamily:"var(--mono)"}},"⟳ "+state.status):
+        hasData?h("div",{style:{fontSize:"9px",color:"var(--dim)",fontFamily:"var(--mono)"}},Object.keys(state.quotes).length+"/51"):null,
+      h("button",{className:"close-btn",onClick:()=>setState({showConfig:!state.showConfig}),style:{fontSize:"16px"}},"⚙")
+    )
+  ));
+
+  // Main
+  const main=h("main",{className:"main"});
+
+  // No API key
+  if(!state.apiKey){
+    const inp=h("input",{className:"connect-input",placeholder:"Finnhub API key...",type:"text"});
+    main.appendChild(h("div",{className:"onboard"},
+      h("h1",null,"IOWN Terminal"),
+      h("p",null,"Enter your free Finnhub API key to load real-time data for all 51 holdings. Get one at ",h("a",{href:"https://finnhub.io",target:"_blank"},"finnhub.io")," — 60 calls/min, no card required."),
+      h("div",{className:"connect-row"},inp,
+        h("button",{className:"connect-btn",onClick:()=>{const v=inp.value.trim();if(v){localStorage.setItem("iown_key",v);setState({apiKey:v});}}},
+          "Connect"))
+    ));
+  }
+  // Connected, no data
+  else if(!hasData&&!state.loading){
+    main.appendChild(h("div",{className:"onboard"},
+      h("h1",null,"Ready to Load"),
+      h("p",null,"API connected. Initial load takes ~2-3 min (rate limited). Quick refresh is ~1 min for quotes only."),
+      h("div",{style:{display:"flex",gap:"10px",justifyContent:"center",flexWrap:"wrap"}},
+        h("button",{className:"connect-btn",onClick:fullLoad},"Full Load"),
+        h("button",{className:"refresh-btn",onClick:quickRefresh},"Quick (Quotes)")
+      )
+    ));
+  }
+  // Has data or loading
+  else{
+    // Loading bar
+    if(state.loading){
+      main.appendChild(h("div",{className:"load-bar"},h("div",{className:"load-fill",style:{width:state.progress+"%"}})));
+    }
+
+    // PORTFOLIO VIEW
+    if(state.view==="portfolio"){
+      // Stat cards
+      const sg=h("div",{className:"stat-grid"});
+      [{k:"all",l:"ALL (51)",tks:ALL},{k:"dividend",l:"DIV (25)",tks:DIVIDEND},{k:"growth",l:"GRW (24)",tks:GROWTH},{k:"digital",l:"DGTL (2)",tks:DIGITAL}].forEach(p=>{
+        const s=calcStats(p.tks);
+        sg.appendChild(h("div",{className:"stat-card"+(state.filter===p.k?" active":""),onClick:()=>setState({filter:p.k})},
+          h("div",{className:"stat-label"},p.l),
+          s.loaded?h("div",null,
+            h("div",{className:"stat-val",style:{color:s.avg>=0?"var(--green)":"var(--red)"}},fmtPct(s.avg)),
+            h("div",{className:"stat-sub"},
+              h("span",{style:{color:"var(--green)"}},s.up+"↑")," / ",h("span",{style:{color:"var(--red)"}},s.dn+"↓")," · "+s.a200+"/"+s.loaded+" >200DMA")
+          ):h("div",{style:{fontSize:"12px",color:"var(--dim)",fontFamily:"var(--mono)"}},"—")
+        ));
+      });
+      main.appendChild(sg);
+
+      // Detail panel
+      if(state.selected){
+        const d=getStockData(state.selected);
+        const det=h("div",{className:"detail"},
+          h("div",{className:"detail-header"},
+            h("div",null,
+              h("div",{style:{display:"flex",alignItems:"center",flexWrap:"wrap",gap:"6px"}},
+                h("span",{className:"detail-ticker"},d.ticker),
+                h("span",{className:"badge",style:{background:"var(--green-dk)",color:"var(--muted)"}},d.sector),
+                h("span",{className:"badge",style:{background:d.port==="Dividend"?"var(--green-dim)":d.port==="Growth"?"var(--gold-dim)":"var(--red-dim)",color:d.port==="Dividend"?"var(--green)":d.port==="Growth"?"var(--gold)":"var(--red)"}},d.port)
+              ),
+              h("div",{className:"detail-name"},d.name),
+              d.has?h("div",{style:{display:"flex",alignItems:"baseline",marginTop:"8px",flexWrap:"wrap"}},
+                h("span",{className:"detail-price"},"$"+fmt(d.price)),
+                h("span",{className:"detail-change",style:{color:d.chgPct>=0?"var(--green)":"var(--red)"}},(d.chg>=0?"+":"")+fmt(d.chg)+" ("+fmtPct(d.chgPct)+")")
+              ):h("div",{style:{color:"var(--dim)",fontFamily:"var(--mono)",fontSize:"13px",marginTop:"8px"}},"No data")
+            ),
+            h("button",{className:"close-btn",onClick:()=>setState({selected:null})},"✕")
+          )
+        );
+        if(d.has){
+          const grid=h("div",{className:"detail-grid"});
+          [
+            ["PREV CLOSE","$"+fmt(d.pc)],["DAY RANGE","$"+fmt(d.low)+"–$"+fmt(d.high)],
+            ["52W RANGE","$"+fmt(d.l52)+"–$"+fmt(d.h52)],
+            ["P/E",fmt(d.pe,1)],["DIV YIELD",fmt(d.divYld,2)+"%",d.divYld>2?"var(--gold)":null],
+            ["MKT CAP",fmtMC(d.mktCap)],["BETA",fmt(d.beta,2)],
+            ["200 DMA","$"+fmt(d.sma200),d.above200?"var(--green)":"var(--red)"],
+            ["FROM 52W HIGH",fmtPct(d.fromHigh),d.fromHigh>-10?"var(--green)":d.fromHigh>-20?"var(--gold)":"var(--red)"],
+            ["FROM 52W LOW",fmtPct(d.fromLow),d.fromLow>25?"var(--gold)":"var(--green)"],
+            ["VS 200DMA",d.sma200?fmtPct(((d.price-d.sma200)/d.sma200)*100):"—",d.above200?"var(--green)":"var(--red)"],
+            ["PORTFOLIO",d.port]
+          ].forEach(([l,v,c])=>{
+            grid.appendChild(h("div",{className:"detail-metric"},
+              h("div",{className:"metric-label"},l),
+              h("div",{className:"metric-val",style:{color:c||"var(--text)"}},v)));
+          });
+          det.appendChild(grid);
+        }
+        main.appendChild(det);
+      }
+
+      // Search & filters
+      const sb=h("div",{className:"search-bar"});
+      const sinp=h("input",{className:"search-input",placeholder:"Search...",value:state.search});
+      sinp.addEventListener("input",e=>setState({search:e.target.value}));
+      sb.appendChild(sinp);
+      ["all","dividend","growth","digital"].forEach(f=>{
+        sb.appendChild(h("button",{className:"filter-btn"+(state.filter===f?" active":""),onClick:()=>setState({filter:f})},
+          f==="all"?"ALL":f==="dividend"?"DIV":f==="growth"?"GRW":"DGTL"));
+      });
+      const rb=h("button",{className:"refresh-btn",disabled:state.loading,onClick:quickRefresh},state.loading?"...":"↻");
+      sb.appendChild(rb);
+      main.appendChild(sb);
+
+      // Sort buttons
+      const sortBar=h("div",{style:{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap"}});
+      [["ticker","Name"],["change","Chg%"],["price","Price"],["mktcap","MktCap"]].forEach(([k,l])=>{
+        sortBar.appendChild(h("button",{className:"filter-btn"+(state.sortKey===k?" active":""),onClick:()=>{
+          if(state.sortKey===k)setState({sortDir:state.sortDir==="asc"?"desc":"asc"});
+          else setState({sortKey:k,sortDir:"desc"});
+        }},l+(state.sortKey===k?(state.sortDir==="asc"?" ↑":" ↓"):"")));
+      });
+      main.appendChild(sortBar);
+
+      // Stock list
+      const list=h("div",{className:"stock-list"});
+      getFiltered().forEach(t=>{
+        const d=getStockData(t);
+        list.appendChild(h("div",{className:"stock-row",onClick:()=>setState({selected:t})},
+          h("div",null,
+            h("div",{className:"stock-ticker"},t),
+            h("div",{className:"stock-name"},d.name)
+          ),
+          h("div",{style:{textAlign:"right"}},
+            h("div",{className:"stock-price"},d.has?"$"+fmt(d.price):h("span",{style:{color:"var(--dim)"}},"—")),
+            h("div",{className:"stock-meta"},d.sector)
+          ),
+          h("div",{style:{textAlign:"right"}},
+            d.has?h("div",{className:"stock-chg "+(d.chgPct>=0?"up":"down")},fmtPct(d.chgPct)):h("div",{className:"stock-chg",style:{color:"var(--dim)"}},"—"),
+            d.above200!=null?h("div",{className:"stock-meta",style:{color:d.above200?"var(--green)":"var(--red)",marginTop:"2px"}},d.above200?"▲ 200DMA":"▼ 200DMA"):null
+          )
+        ));
+      });
+      main.appendChild(list);
+    }
+
+    // SIGNALS VIEW
+    if(state.view==="signals"){
+      main.appendChild(h("div",{className:"section-title"},"Tactical Signals"));
+      main.appendChild(h("div",{className:"section-desc"},"Trim: >200DMA +25% from lows · Buy tranches: -20%, -25%, -30%"));
+      const sigs=getSignals();
+      if(!sigs.length)main.appendChild(h("div",{className:"empty"},"No signals — load data first"));
+      ["BUY","TRIM","WATCH"].forEach(type=>{
+        const items=sigs.filter(s=>s.type===type);if(!items.length)return;
+        const color=type==="BUY"?"var(--green)":type==="TRIM"?"var(--gold)":"var(--red)";
+        const bg=type==="BUY"?"var(--green-dim)":type==="TRIM"?"var(--gold-dim)":"var(--red-dim)";
+        const card=h("div",{className:"signal-card"},h("div",{className:"signal-title",style:{color}},type+" ("+items.length+")"));
+        items.forEach(s=>{
+          card.appendChild(h("div",{className:"signal-row"},
+            h("span",{className:"signal-badge",style:{background:bg,color}},s.type),
+            h("span",{className:"signal-ticker",style:{color},onClick:()=>setState({selected:s.ticker,view:"portfolio"})},s.ticker),
+            h("span",{className:"signal-reason"},s.reason)
+          ));
+        });
+        main.appendChild(card);
+      });
+    }
+
+    // SECTORS VIEW
+    if(state.view==="sectors"){
+      main.appendChild(h("div",{className:"section-title"},"Sectors"));
+      const sd={};
+      ALL.forEach(t=>{const d=getStockData(t);if(!d.has)return;const s=d.sector;if(!sd[s])sd[s]={tks:[],sum:0};sd[s].tks.push(d);sd[s].sum+=d.chgPct;});
+      const sectors=Object.entries(sd).map(([n,v])=>({name:n,avg:v.sum/v.tks.length,tks:v.tks.sort((a,b)=>b.chgPct-a.chgPct)})).sort((a,b)=>b.avg-a.avg);
+      if(!sectors.length)main.appendChild(h("div",{className:"empty"},"Load data first"));
+      sectors.forEach(s=>{
+        const card=h("div",{className:"signal-card"},
+          h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}},
+            h("span",{style:{fontSize:"14px",fontWeight:"600"}},s.name+" ("+s.tks.length+")"),
+            h("span",{style:{fontFamily:"var(--mono)",fontWeight:"700",fontSize:"13px",color:s.avg>=0?"var(--green)":"var(--red)"}},fmtPct(s.avg))
+          )
+        );
+        s.tks.forEach(d=>{
+          card.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between",padding:"5px 0",borderTop:"1px solid var(--border)"}},
+            h("span",{style:{color:"var(--green)",fontFamily:"var(--mono)",fontSize:"12px",cursor:"pointer"},onClick:()=>setState({selected:d.ticker,view:"portfolio"})},d.ticker),
+            h("span",{style:{color:d.chgPct>=0?"var(--green)":"var(--red)",fontFamily:"var(--mono)",fontSize:"12px"}},fmtPct(d.chgPct))
+          ));
+        });
+        main.appendChild(card);
+      });
+    }
+
+    // NEWS VIEW
+    if(state.view==="news"){
+      main.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px"}},
+        h("div",{className:"section-title"},"Market News"),
+        h("button",{className:"refresh-btn",onClick:loadNews},"Load News")
+      ));
+      if(!state.news.length)main.appendChild(h("div",{className:"empty"},'Tap "Load News" to fetch headlines'));
+      state.news.forEach(n=>{
+        const a=h("a",{className:"news-item",href:n.url,target:"_blank",rel:"noreferrer"},
+          h("div",{className:"news-headline"},n.headline||""),
+          h("div",{className:"news-summary"},(n.summary||"").slice(0,160)+"..."),
+          h("div",{className:"news-meta"},(n.source||"")+" · "+new Date((n.datetime||0)*1000).toLocaleString())
+        );
+        main.appendChild(a);
+      });
+    }
+
+    // AI RESEARCH
+    if(state.view==="research"){
+      const panel=h("div",{className:"ai-panel"},
+        h("div",{className:"section-title"},"AI Research"),
+        h("div",{style:{fontSize:"11px",color:"var(--muted)",fontFamily:"var(--mono)",marginTop:"4px"}},"Ask about holdings, get AI-drafted analysis with web search")
+      );
+      const inp=h("input",{className:"ai-input",placeholder:"Ask about your portfolio...",value:state.aiQuery});
+      inp.addEventListener("input",e=>{state.aiQuery=e.target.value;});
+      inp.addEventListener("keydown",e=>{if(e.key==="Enter")runAI();});
+      panel.appendChild(inp);
+      const btn=h("button",{className:"ai-btn",disabled:state.aiLoading,onClick:runAI},state.aiLoading?"Analyzing...":"Research");
+      panel.appendChild(btn);
+      if(state.aiResp)panel.appendChild(h("div",{className:"ai-resp"},state.aiResp));
+      main.appendChild(panel);
+    }
+  }
+
+  app.appendChild(main);
+
+  // Tab bar
+  if(state.apiKey){
+    const tabs=h("nav",{className:"tab-bar"});
+    [{k:"portfolio",icon:"◉",l:"Portfolio"},{k:"signals",icon:"⚡",l:"Signals"},{k:"sectors",icon:"◧",l:"Sectors"},{k:"news",icon:"◈",l:"News"},{k:"research",icon:"✦",l:"AI"}].forEach(t=>{
+      tabs.appendChild(h("button",{className:"tab"+(state.view===t.k?" active":""),onClick:()=>setState({view:t.k})},
+        h("div",{className:"tab-icon"},t.icon),t.l));
+    });
+    app.appendChild(tabs);
+  }
+
+  // Config panel
+  if(state.showConfig){
+    app.appendChild(h("div",{className:"config-overlay",onClick:()=>setState({showConfig:false})}));
+    const cp=h("div",{className:"config-panel"},
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}},
+        h("div",{style:{fontSize:"18px",fontFamily:"var(--serif)",fontWeight:"700"}},"Configuration"),
+        h("button",{className:"close-btn",onClick:()=>setState({showConfig:false})},"✕")
+      )
+    );
+    // API key
+    cp.appendChild(h("div",{className:"stat-label"},"FINNHUB API KEY"));
+    const ki=h("input",{className:"config-input",type:"password",placeholder:"API key...",value:state.apiKey});
+    cp.appendChild(h("div",{className:"config-row"},ki,
+      h("button",{className:"config-btn",style:{background:"var(--green-dk)",color:"var(--green)"},onClick:()=>{const v=ki.value.trim();if(v){localStorage.setItem("iown_key",v);setState({apiKey:v,showConfig:false});}}},"Save")
+    ));
+    // Status
+    const loaded=Object.keys(state.quotes).length;
+    cp.appendChild(h("div",{className:"config-status"},
+      h("div",{className:"stat-label"},"STATUS"),
+      h("div",{style:{display:"flex",alignItems:"center",gap:"6px",fontSize:"12px",fontFamily:"var(--mono)"}},
+        h("span",{style:{width:"7px",height:"7px",borderRadius:"50%",background:loaded?"var(--green)":state.apiKey?"var(--gold)":"var(--red)",display:"inline-block"}}),
+        loaded?loaded+"/51 loaded":(state.apiKey?"Connected":"Not connected"))
+    ));
+    // Portfolio info
+    cp.appendChild(h("div",{className:"config-status"},
+      h("div",{className:"stat-label"},"PORTFOLIO"),
+      h("div",{style:{fontSize:"12px",color:"var(--muted)",fontFamily:"var(--mono)",lineHeight:"1.8"}},
+        "Dividend: 25 · Growth: 24 · Digital: 2 · Total: 51")
+    ));
+    // Actions
+    cp.appendChild(h("div",{style:{display:"flex",flexDirection:"column",gap:"8px"}},
+      h("button",{className:"config-btn",style:{background:"var(--green-dk)",color:"var(--green)",width:"100%",padding:"12px"},disabled:state.loading,onClick:()=>{setState({showConfig:false});fullLoad();}},"Full Refresh (~3 min)"),
+      h("button",{className:"config-btn",style:{background:"transparent",border:"1px solid var(--border)",color:"var(--muted)",width:"100%",padding:"12px"},disabled:state.loading,onClick:()=>{setState({showConfig:false});quickRefresh();}},"Quick Refresh (~1 min)"),
+      h("button",{className:"config-btn",style:{background:"transparent",border:"1px solid var(--red-dim)",color:"var(--red)",width:"100%",padding:"12px"},onClick:()=>{localStorage.removeItem("iown_key");localStorage.removeItem("iown_quotes");localStorage.removeItem("iown_metrics");setState({apiKey:"",quotes:{},metrics:{},showConfig:false});}},"Disconnect & Clear Data")
+    ));
+    app.appendChild(cp);
+  }
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────
+render();
+if("serviceWorker"in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
+</script>
+</body>
+</html>

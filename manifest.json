@@ -1,0 +1,22 @@
+{
+  "name": "IOWN Terminal",
+  "short_name": "IOWN",
+  "description": "Intentional Ownership Investment Terminal — Return on Intention",
+  "start_url": "/IOWN-Terminal/",
+  "display": "standalone",
+  "background_color": "#080c0a",
+  "theme_color": "#3D4A2E",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
