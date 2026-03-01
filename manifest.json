@@ -1,0 +1,16 @@
+{
+  "name": "IOWN Terminal",
+  "short_name": "IOWN",
+  "description": "Investment research terminal for Intentional Ownership",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#080c0a",
+  "theme_color": "#080c0a",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
